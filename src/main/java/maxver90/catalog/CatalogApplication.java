@@ -5,10 +5,8 @@ import maxver90.catalog.entity.Characteristic;
 import maxver90.catalog.entity.Product;
 import maxver90.catalog.entity.Value;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.TypedQuery;
+import javax.persistence.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -72,7 +70,6 @@ public class CatalogApplication {
                 newValue.setValue(newCharacteristic);
                 manager.persist(newValue);
             }
-
             manager.getTransaction().commit();
         } catch (Exception e) {
             manager.getTransaction().rollback();
@@ -83,7 +80,53 @@ public class CatalogApplication {
     }
 
     private static void update() {
-        //
+        EntityManager manager = FACTORY.createEntityManager();
+        try {
+            manager.getTransaction().begin();
+
+            System.out.println("Введите ID товара, который нужно обновить: ");
+            String productId = IN.nextLine();
+            Product product = manager.find(Product.class, Long.parseLong(productId));
+            System.out.println("Введите новое название: ");
+            String newName = IN.nextLine();
+            product.setName(newName);
+            System.out.println("Введите новую цену: ");
+            String newPrice = IN.nextLine();
+            product.setPrice(Integer.parseInt(newPrice));
+            System.out.println("Введите новое описание: ");
+            String newDescription = IN.nextLine();
+            product.setDescription(newDescription);
+
+            List<Characteristic> characteristics = product.getCategory().getCharacteristics();
+            for (Characteristic characteristic : characteristics) {
+                System.out.println(characteristic.getTitle());
+                System.out.println("Обновите характеристику: ");
+                String newValue = IN.nextLine();
+                TypedQuery<Value> valueQuery = manager.createQuery(
+                        "select v from Value v where v.product = ?1 and v.characteristic = ?2", Value.class
+                );
+                valueQuery.setParameter(1, product);
+                valueQuery.setParameter(2, characteristic);
+                valueQuery.setMaxResults(1);
+                List<Value> valuesList = valueQuery.getResultList();
+                if (valuesList.isEmpty()) {
+                    Value value = new Value();
+                    value.setValue(newValue);
+                    value.setProduct(product);
+                    value.setCharacteristic(characteristic);
+                    manager.persist(value);
+                } else {
+                    Value value = valuesList.get(0);
+                    value.setValue(newValue);
+                }
+            }
+            manager.getTransaction().commit();
+        } catch (Exception e) {
+            manager.getTransaction().rollback();
+            e.printStackTrace();
+        } finally {
+            manager.close();
+        }
     }
 
     private static void delete() {
