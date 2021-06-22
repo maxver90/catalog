@@ -186,8 +186,14 @@ public class CatalogApplication {
         EntityManager manager = FACTORY.createEntityManager();
         try {
             manager.getTransaction().begin();
-
-
+            System.out.print("Введите ID товара, который нужно удалить: ");
+            String productId = IN.nextLine();
+            while (!productId.matches("\\d+")) {
+                System.out.print("Неверный формат! Введите ещё раз: ");
+                productId = IN.nextLine();
+            }
+            Product product = manager.find(Product.class, Long.parseLong(productId));
+            manager.remove(product);
             manager.getTransaction().commit();
         } catch (Exception e) {
             manager.getTransaction().rollback();
