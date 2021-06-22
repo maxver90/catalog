@@ -47,6 +47,23 @@ public class CatalogApplication {
             }
             System.out.print("Выберите ID категории, в кторотую нужно добавить товар: ");
             String choiceCategory = IN.nextLine();
+            while (true) {
+                if (!choiceCategory.matches("\\d+")) {
+                    System.out.println("Введите цифру!");
+                    choiceCategory = IN.nextLine();
+                    continue;
+                }
+                TypedQuery<Long> queryCategoriesId = manager.createQuery(
+                        "select count(c.id) from Category c where c.id = ?1", Long.class
+                );
+                queryCategoriesId.setParameter(1, Long.parseLong(choiceCategory));
+                Long countId = queryCategoriesId.getSingleResult();
+                if (countId > 0) {
+                    break;
+                }
+                System.out.println("Такой категории не существует");
+                choiceCategory = IN.nextLine();
+            }
             Category category = manager.find(Category.class, Long.parseLong(choiceCategory));
             newProduct.setCategory(category);
             System.out.print("Введите название товара: ");
@@ -71,12 +88,14 @@ public class CatalogApplication {
                 manager.persist(newValue);
             }
             manager.getTransaction().commit();
-        } catch (Exception e) {
+        } catch (
+                Exception e) {
             manager.getTransaction().rollback();
             e.printStackTrace();
         } finally {
             manager.close();
         }
+
     }
 
     private static void update() {
@@ -87,16 +106,35 @@ public class CatalogApplication {
             System.out.println("Введите ID товара, который нужно обновить: ");
             String productId = IN.nextLine();
             Product product = manager.find(Product.class, Long.parseLong(productId));
+            System.out.println(product.getName());
             System.out.println("Введите новое название: ");
             String newName = IN.nextLine();
-            product.setName(newName);
+            if (!newName.equals("")) {
+                product.setName(newName);
+            }
+            System.out.println(product.getPrice());
             System.out.println("Введите новую цену: ");
             String newPrice = IN.nextLine();
-            product.setPrice(Integer.parseInt(newPrice));
+            while (true) {
+                if (!newPrice.matches("\\d+")) {
+                    System.out.println("Введите цифры!");
+                } else {
+                    break;
+                }
+                System.out.println(product.getPrice());
+                System.out.println("Введите новую цену: ");
+                newPrice = IN.nextLine();
+            }
+
+            if (!newPrice.equals("")) {
+                product.setPrice(Integer.parseInt(newPrice));
+            }
+            System.out.println(product.getDescription());
             System.out.println("Введите новое описание: ");
             String newDescription = IN.nextLine();
-            product.setDescription(newDescription);
-
+            if (!newDescription.equals("")) {
+                product.setDescription(newDescription);
+            }
             List<Characteristic> characteristics = product.getCategory().getCharacteristics();
             for (Characteristic characteristic : characteristics) {
                 System.out.println(characteristic.getTitle());
@@ -117,7 +155,9 @@ public class CatalogApplication {
                     manager.persist(value);
                 } else {
                     Value value = valuesList.get(0);
-                    value.setValue(newValue);
+                    if (!newValue.equals("")) {
+                        value.setValue(newValue);
+                    }
                 }
             }
             manager.getTransaction().commit();
@@ -130,7 +170,17 @@ public class CatalogApplication {
     }
 
     private static void delete() {
-        //
-    }
+        EntityManager manager = FACTORY.createEntityManager();
+        try {
+            manager.getTransaction().begin();
 
+            manager.getTransaction().commit();
+        } catch (Exception e) {
+            manager.getTransaction().rollback();
+            e.printStackTrace();
+        } finally {
+            manager.close();
+
+        }
+    }
 }
