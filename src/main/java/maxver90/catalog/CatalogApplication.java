@@ -5,8 +5,10 @@ import maxver90.catalog.entity.Characteristic;
 import maxver90.catalog.entity.Product;
 import maxver90.catalog.entity.Value;
 
-import javax.persistence.*;
-import java.util.Arrays;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.TypedQuery;
 import java.util.List;
 import java.util.Scanner;
 
@@ -49,7 +51,7 @@ public class CatalogApplication {
             String choiceCategory = IN.nextLine();
             while (true) {
                 if (!choiceCategory.matches("\\d+")) {
-                    System.out.println("Введите цифру!");
+                    System.out.println("Неверный формат!");
                     choiceCategory = IN.nextLine();
                     continue;
                 }
@@ -61,7 +63,7 @@ public class CatalogApplication {
                 if (countId > 0) {
                     break;
                 }
-                System.out.println("Такой категории не существует");
+                System.out.println("Такой категории не существует!");
                 choiceCategory = IN.nextLine();
             }
             Category category = manager.find(Category.class, Long.parseLong(choiceCategory));
@@ -70,8 +72,13 @@ public class CatalogApplication {
             String newName = IN.nextLine();
             newProduct.setName(newName);
             System.out.print("Введите цену: ");
-            Integer newPrice = Integer.parseInt(IN.nextLine());
-            newProduct.setPrice(newPrice);
+            String newPrice = IN.nextLine();
+            while (!newPrice.matches("\\d+")) {
+                System.out.print("Неверный формат! Введите ещё раз: ");
+
+                newPrice = IN.nextLine();
+            }
+            newProduct.setPrice(Integer.parseInt(newPrice));
             System.out.print("Введите описание: ");
             String newDescription = IN.nextLine();
             newProduct.setDescription(newDescription);
@@ -95,50 +102,56 @@ public class CatalogApplication {
         } finally {
             manager.close();
         }
-
     }
 
     private static void update() {
         EntityManager manager = FACTORY.createEntityManager();
         try {
             manager.getTransaction().begin();
-
-            System.out.println("Введите ID товара, который нужно обновить: ");
+            System.out.print("Введите ID товара, который нужно обновить: ");
             String productId = IN.nextLine();
+            while (!productId.matches("\\d+")) {
+                System.out.print("Неверный формат! Введите ещё раз: ");
+                productId = IN.nextLine();
+            }
             Product product = manager.find(Product.class, Long.parseLong(productId));
             System.out.println(product.getName());
-            System.out.println("Введите новое название: ");
+            System.out.print("Введите новое название: ");
             String newName = IN.nextLine();
-            if (!newName.equals("")) {
+            if (newName.isEmpty()) {
                 product.setName(newName);
             }
             System.out.println(product.getPrice());
-            System.out.println("Введите новую цену: ");
+            System.out.print("Введите новую цену: ");
             String newPrice = IN.nextLine();
             while (true) {
                 if (!newPrice.matches("\\d+")) {
-                    System.out.println("Введите цифры!");
+                    System.out.println("Неверный формат!");
                 } else {
                     break;
                 }
                 System.out.println(product.getPrice());
-                System.out.println("Введите новую цену: ");
+                System.out.print("Введите новую цену: ");
                 newPrice = IN.nextLine();
             }
 
-            if (!newPrice.equals("")) {
+            if (newPrice.isEmpty()) {
+                while (!newPrice.matches("\\d+")) {
+                    System.out.print("Неверный формат! Введите ещё раз: ");
+                    newPrice = IN.nextLine();
+                }
                 product.setPrice(Integer.parseInt(newPrice));
             }
             System.out.println(product.getDescription());
-            System.out.println("Введите новое описание: ");
+            System.out.print("Введите новое описание: ");
             String newDescription = IN.nextLine();
-            if (!newDescription.equals("")) {
+            if (newDescription.isEmpty()) {
                 product.setDescription(newDescription);
             }
             List<Characteristic> characteristics = product.getCategory().getCharacteristics();
             for (Characteristic characteristic : characteristics) {
                 System.out.println(characteristic.getTitle());
-                System.out.println("Обновите характеристику: ");
+                System.out.print("Обновите характеристику: ");
                 String newValue = IN.nextLine();
                 TypedQuery<Value> valueQuery = manager.createQuery(
                         "select v from Value v where v.product = ?1 and v.characteristic = ?2", Value.class
@@ -155,7 +168,7 @@ public class CatalogApplication {
                     manager.persist(value);
                 } else {
                     Value value = valuesList.get(0);
-                    if (!newValue.equals("")) {
+                    if (newValue.isEmpty()) {
                         value.setValue(newValue);
                     }
                 }
@@ -173,6 +186,7 @@ public class CatalogApplication {
         EntityManager manager = FACTORY.createEntityManager();
         try {
             manager.getTransaction().begin();
+
 
             manager.getTransaction().commit();
         } catch (Exception e) {
