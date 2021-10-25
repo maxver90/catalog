@@ -5,6 +5,7 @@
              version="3.0">
     <persistence-unit name="main-connection">
         <properties>
+            <property name="hibernate.globally_quoted_identifiers" value="true"/>
             <property name="hibernate.connection.url" value=""/>
             <property name="hibernate.connection.username" value=""/>
             <property name="hibernate.connection.password" value=""/>

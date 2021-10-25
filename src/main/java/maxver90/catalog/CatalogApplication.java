@@ -4,11 +4,16 @@ import maxver90.catalog.entity.Category;
 import maxver90.catalog.entity.Characteristic;
 import maxver90.catalog.entity.Product;
 import maxver90.catalog.entity.Value;
-
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
@@ -24,6 +29,7 @@ public class CatalogApplication {
                 Добавить [1]
                 Редактировать [2]
                 Удалить [3]
+                Отфильтровать [4]
                 Выберите действие: \
                 """);
         String actionNum = IN.nextLine();
@@ -31,7 +37,54 @@ public class CatalogApplication {
             case "1" -> create();
             case "2" -> update();
             case "3" -> delete();
+            case "4" -> filter();
             default -> System.out.println("Такого действия не существует");
+        }
+    }
+
+    private static void filter() {
+
+        Long categoryId = 1L;
+        String name = null;
+        Integer minPrice = 75000;
+        Integer maxPrice = 200000;
+
+        EntityManager manager = FACTORY.createEntityManager();
+        try {
+            manager.getTransaction().begin();
+            CriteriaBuilder builder = manager.getCriteriaBuilder();
+            CriteriaQuery<Product> criteriaQuery = builder.createQuery(Product.class);
+            Root<Product> root = criteriaQuery.from(Product.class);
+            List<Predicate> predicateList = new ArrayList<>();
+
+            if (categoryId != null) {
+                predicateList.add(builder.equal(root.get("category").get("id"), categoryId));
+            }
+            if (name != null) {
+                predicateList.add(builder.like(root.get("name"), "%" + name + "%"));
+            }
+            if (minPrice != null) {
+                predicateList.add(builder.greaterThanOrEqualTo(root.get("price"), minPrice));
+            }
+            if (maxPrice != null) {
+                predicateList.add(builder.lessThanOrEqualTo(root.get("price"), maxPrice));
+            }
+            Predicate[] predicates = new Predicate[predicateList.size()];
+            for (int i = 0; i < predicateList.size(); i++) {
+                predicates[i] = predicateList.get(i);
+            }
+            criteriaQuery.where(predicates);
+            TypedQuery<Product> typedQuery = manager.createQuery(criteriaQuery);
+            List<Product> products = typedQuery.getResultList();
+            for (Product product : products) {
+                System.out.println(product.getName());
+            }
+        } catch (
+                Exception e) {
+            manager.getTransaction().rollback();
+            e.printStackTrace();
+        } finally {
+            manager.close();
         }
     }
 
@@ -119,6 +172,8 @@ public class CatalogApplication {
             System.out.print("Введите новое название: ");
             String newName = IN.nextLine();
             if (newName.isEmpty()) {
+                product.setName(product.getName());
+            } else {
                 product.setName(newName);
             }
             System.out.println(product.getPrice());
@@ -134,8 +189,9 @@ public class CatalogApplication {
                 System.out.print("Введите новую цену: ");
                 newPrice = IN.nextLine();
             }
-
             if (newPrice.isEmpty()) {
+                product.setPrice(product.getPrice());
+            } else {
                 while (!newPrice.matches("\\d+")) {
                     System.out.print("Неверный формат! Введите ещё раз: ");
                     newPrice = IN.nextLine();
@@ -146,6 +202,8 @@ public class CatalogApplication {
             System.out.print("Введите новое описание: ");
             String newDescription = IN.nextLine();
             if (newDescription.isEmpty()) {
+                product.setDescription(product.getDescription());
+            } else {
                 product.setDescription(newDescription);
             }
             List<Characteristic> characteristics = product.getCategory().getCharacteristics();
@@ -169,6 +227,8 @@ public class CatalogApplication {
                 } else {
                     Value value = valuesList.get(0);
                     if (newValue.isEmpty()) {
+                        value.setValue(valuesList.get(0).getValue());
+                    } else {
                         value.setValue(newValue);
                     }
                 }
